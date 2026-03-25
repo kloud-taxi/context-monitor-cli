@@ -4,7 +4,7 @@ const API_KEY = process.env.SAKURA_AI_API_KEY;
 const API_URL = "https://api.ai.sakura.ad.jp/v1/chat/completions"; 
 
 export async function checkDistraction(objective: string, title: string, url: string) {
-  // 1. プロンプトを極限までシンプルかつ厳格に
+  // プロンプトを極限までシンプルかつ厳格に
   const systemPrompt = `
 目標: ${objective}
 現在の状況: ${title} (URL: ${url})
@@ -34,7 +34,7 @@ export async function checkDistraction(objective: string, title: string, url: st
 
     const resultText = response.data.choices[0].message.content;
     
-    // 【重要】正規表現でJSON部分だけを抜き出す（これで「ア」とかの余計な文字を無視！）
+    // 【重要】正規表現でJSON部分だけを抜き出す
     const jsonMatch = resultText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
         throw new Error("AIが有効なJSONを返さなかったぞ！");
