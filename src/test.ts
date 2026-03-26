@@ -1,7 +1,8 @@
 import "dotenv/config";
-import { checkDistraction } from "./ai.js";
-import { generateScoldingVoice } from "./tts.js"; // 👈 tts.tsから関数をインポート！
+import { checkDistraction } from "./ai.js"; // Reverted to .js for NodeNext module resolution
+import { generateScoldingVoice } from "./tts.js"; // 👈 tts.tsから関数をインポート！ Reverted to .js
 import { createPlatformContextProvider } from "./platform/index.js";
+import * as fs from "fs"; // 🛠️ Added import for Node.js file system module
 
 async function main() {
   console.log("🚀 さくらAI 統合テスト（判定＋音声）を開始します...");
@@ -24,6 +25,15 @@ async function main() {
     );
 
     console.log("\n✅ AI判定結果:", JSON.stringify(result, null, 2));
+
+    // 💡 --- ここからログ保存の処理 ---
+    const timestamp = new Date().toLocaleString("ja-JP");
+    const status = result.is_distracted ? "❌サボり" : "✅集中";
+    const logText = `[${timestamp}] 判定: ${status} | 画面: ${currentTitle} | メッセージ: ${result.scolding_message}\n`;
+
+    // appendFileSync は、ファイルがなければ作成し、あれば末尾に追記してくれる超便利関数！
+    fs.appendFileSync("history.log", logText, "utf8");
+    console.log("📝 判定結果を history.log に保存しました。");
 
     // 💡 ここに挿入！「サボり」判定だったら声を出す
     if (result.is_distracted) {
