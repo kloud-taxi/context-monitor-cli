@@ -1,32 +1,48 @@
 {
-  "name": "context-monitor-cli",
+  "name": "@kloud-taxi/cmc",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Context Monitor CLI - Evaluates if current work is related to a given domain",
+  "main": "dist/index.js",
   "type": "module",
+  "bin": {
+    "cmc": "./dist/cli.js"
+  },
   "scripts": {
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kloud-taxi/context-monitor-cli.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "context-monitor",
+    "cli",
+    "productivity"
+  ],
+  "author": "kloud-taxi",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/kloud-taxi/context-monitor-cli/issues"
   },
   "homepage": "https://github.com/kloud-taxi/context-monitor-cli#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "@aws-sdk/client-polly": "^3.1015.0",
     "axios": "^1.13.6",
     "dotenv": "^17.3.1",
+    "inquirer": "^9.3.1",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.2"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
+    "@types/inquirer": "^8.2.10",
     "tsx": "^4.21.0"
   }
 }

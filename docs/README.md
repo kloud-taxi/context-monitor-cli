@@ -32,3 +32,14 @@
 
 - `CONTEXT_MONITOR_FETCH_BROWSER_URL=1` を設定したときだけ、Safari/ChromeのURL取得を試行します。
 - 取得に失敗しても処理は継続し、`url` は空文字になります。
+
+# 仕様
+- `npm i -g @kloud-taxi/cmc`
+- `cmc`: アプリの起動。初回だけAPIキーを入力させてローカルに保存
+- `cmc -v`: バージョンの管理
+
+# コマンド
+- cmc "Python開発"          # ドメインを指定して実行
+- cmc                       # プロンプトでドメイン入力
+- cmc -h                    # ヘルプ表示
+- cmc -v                    # バージョン表示
