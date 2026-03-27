@@ -1,9 +1,8 @@
 import axios from "axios";
 import fs from "fs";
 import path from "path";
+import { getApiClient } from "./lib/apiClient.js";
 
-const API_KEY = process.env.SAKURA_AI_API_KEY;
-const TTS_URL = "https://api.ai.sakura.ad.jp/v1/audio/speech";
 const TTS_PROVIDER = "sakura";
 
 // docs/voicevox-models.csv に基づく利用可能モデル一覧
@@ -27,30 +26,18 @@ async function generateVoiceSakura(text: string): Promise<string> {
   const outputPath = path.join(outputDir, "temp.wav");
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  if (!API_KEY) {
-    throw new Error(
-      "SAKURA_AI_API_KEY が未設定です。さくらAPIを使うには環境変数を設定してください。",
-    );
-  }
-
   const voice = process.env.SAKURA_TTS_VOICE ?? SAKURA_TTS_SPEC_VOICE;
 
-  const response = await axios.post(
-    TTS_URL,
-    {
-      model: AVAILABLE_TTS_MODELS[0],
-      input: text,
-      voice,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      responseType: "arraybuffer",
-    },
-  );
-  fs.writeFileSync(outputPath, Buffer.from(response.data));
+  const client = getApiClient() as SakuraSpeechClient;
+  const audioBlob = await client.createSpeech({
+    model: AVAILABLE_TTS_MODELS[0],
+    input: text,
+    voice,
+    response_format: "wav",
+  });
+
+  const arrayBuffer = await audioBlob.arrayBuffer();
+  fs.writeFileSync(outputPath, Buffer.from(arrayBuffer));
   return outputPath;
 }
 
@@ -83,3 +70,16 @@ export async function generateScoldingVoice(text: string): Promise<string> {
     throw error;
   }
 }
+
+type SpeechRequest = {
+  model: string;
+  input: string;
+  voice?: string;
+  instructions?: string;
+  response_format?: "wav" | "mp3" | "ogg" | "aac" | "flac";
+  stream_format?: "sse" | "jsonl";
+};
+
+type SakuraSpeechClient = {
+  createSpeech: (payload: SpeechRequest) => Promise<Blob>;
+};
