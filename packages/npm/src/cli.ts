@@ -13,6 +13,7 @@ import { generateScoldingVoice } from "./tts.js";
 
 const DEFAULT_INTERVAL_SEC = 10;
 const SCOLDING_ART = "(｀・ω・´)";
+const DEFAULT_N = 41n;
 
 const execFileAsync = promisify(execFile);
 
@@ -28,7 +29,26 @@ type HistoryEntry = {
   url: string;
   isDistracted: boolean;
   scoldingMessage?: string;
+  serverTimestamp?: string;
+  m?: string;
+  n?: string;
+  d8?: string;
   error?: string;
+};
+
+type BaseRecord = {
+  timestamp: string;
+  objective: string;
+  appName: string;
+  windowTitle: string;
+  url: string;
+  isDistracted: boolean;
+  scoldingMessage: string;
+};
+
+type HashResponse = {
+  serverTimestamp: string;
+  m: string;
 };
 
 function getConfigPath(): string {
@@ -63,6 +83,110 @@ function appendHistory(entry: HistoryEntry): void {
   const historyPath = getHistoryPath();
   fs.mkdirSync(path.dirname(historyPath), { recursive: true });
   fs.appendFileSync(historyPath, `${JSON.stringify(entry)}\n`);
+}
+
+function getCalcUrl(): string {
+  return process.env.CONTEXT_MONITOR_CALC_URL ?? "http://localhost:8080";
+}
+
+async function requestHash(
+  record: BaseRecord,
+  serverTimestamp?: string,
+): Promise<HashResponse> {
+  const response = await fetch(`${getCalcUrl()}/hash`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ record, serverTimestamp }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`hash request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as HashResponse;
+}
+
+function computeD8(m: bigint, n: bigint): { d8: bigint; nUsed: bigint } {
+  const nUsed = n > 1n ? n : DEFAULT_N;
+  let d = m % nUsed;
+  for (let i = 2; i <= 8; i += 1) {
+    d = (d * m) % nUsed;
+  }
+
+  return { d8: d, nUsed };
+}
+
+function loadLastD8(): bigint {
+  const historyPath = getHistoryPath();
+  if (!fs.existsSync(historyPath)) {
+    return DEFAULT_N;
+  }
+
+  const lines = fs.readFileSync(historyPath, "utf-8").trim().split("\n");
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    const line = lines[i]?.trim();
+    if (!line) {
+      continue;
+    }
+    try {
+      const entry = JSON.parse(line) as { d8?: string };
+      if (entry.d8) {
+        return BigInt(entry.d8);
+      }
+    } catch {
+      // ignore malformed line
+    }
+  }
+
+  return DEFAULT_N;
+}
+
+async function verifyLog(filePath: string): Promise<void> {
+  const content = fs.readFileSync(filePath, "utf-8");
+  const lines = content.split("\n").filter((line) => line.trim().length > 0);
+  let currentN = DEFAULT_N;
+  let ok = 0;
+  let ng = 0;
+
+  for (const line of lines) {
+    try {
+      const entry = JSON.parse(line) as HistoryEntry;
+      if (!entry.serverTimestamp || !entry.m || !entry.d8) {
+        throw new Error("missing proof fields");
+      }
+
+      const record: BaseRecord = {
+        timestamp: entry.timestamp,
+        objective: entry.objective,
+        appName: entry.appName,
+        windowTitle: entry.windowTitle,
+        url: entry.url,
+        isDistracted: entry.isDistracted,
+        scoldingMessage: entry.scoldingMessage ?? "",
+      };
+
+      const recomputed = await requestHash(record, entry.serverTimestamp);
+      const mMatches = recomputed.m === entry.m;
+      const { d8, nUsed } = computeD8(BigInt(entry.m), currentN);
+      const d8Matches = d8.toString() === entry.d8;
+      const nMatches = entry.n ? entry.n === nUsed.toString() : true;
+
+      if (!mMatches || !d8Matches || !nMatches) {
+        throw new Error("verification failed");
+      }
+
+      currentN = d8;
+      ok += 1;
+    } catch (error) {
+      console.error(
+        "検証失敗:",
+        error instanceof Error ? error.message : error,
+      );
+      ng += 1;
+    }
+  }
+
+  console.log(`検証結果 OK=${ok} NG=${ng}`);
 }
 
 async function playAudio(filePath: string): Promise<void> {
@@ -158,6 +282,8 @@ async function startMonitoring(objective: string): Promise<void> {
   );
   const provider = createPlatformContextProvider();
   let isRunning = false;
+  let currentN = loadLastD8();
+  let lastM: string | null = null;
 
   const runOnce = async () => {
     if (isRunning) {
@@ -175,16 +301,25 @@ async function startMonitoring(objective: string): Promise<void> {
         currentTitle,
         currentContext.url,
       );
-      appendHistory({
+      const record: BaseRecord = {
         timestamp: new Date().toISOString(),
         objective,
         appName: currentContext.appName,
         windowTitle: currentContext.windowTitle,
         url: currentContext.url,
         isDistracted: result.is_distracted,
-        scoldingMessage: result.is_distracted
-          ? result.scolding_message
-          : undefined,
+        scoldingMessage: result.is_distracted ? result.scolding_message : "",
+      };
+      const hash = await requestHash(record);
+      const { d8, nUsed } = computeD8(BigInt(hash.m), currentN);
+      currentN = d8;
+      lastM = hash.m;
+      appendHistory({
+        ...record,
+        serverTimestamp: hash.serverTimestamp,
+        m: hash.m,
+        n: nUsed.toString(),
+        d8: d8.toString(),
       });
       if (result.is_distracted) {
         console.log("\n🔥 サボり検知！音声を生成します...");
@@ -218,6 +353,13 @@ async function startMonitoring(objective: string): Promise<void> {
   setInterval(() => {
     void runOnce();
   }, intervalSec * 1000);
+
+  process.on("SIGINT", () => {
+    if (lastM) {
+      console.log(`\n最終m: ${lastM}`);
+    }
+    process.exit(0);
+  });
 }
 
 async function main(): Promise<void> {
@@ -229,6 +371,17 @@ async function main(): Promise<void> {
 
   if (args.includes("-v") || args.includes("--version")) {
     console.log(getVersion());
+    return;
+  }
+
+  if (args[0] === "verify-log") {
+    const targetPath = args[1];
+    if (!targetPath) {
+      console.error("検証対象ファイルを指定してください。");
+      process.exit(1);
+    }
+
+    await verifyLog(targetPath);
     return;
   }
 
@@ -245,6 +398,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  console.log(SCOLDING_ART);
   await startMonitoring(objective);
 }
 
