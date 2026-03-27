@@ -1,15 +1,20 @@
 #!/usr/bin/env node
 import "dotenv/config";
+import { execFile } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import readline from "node:readline/promises";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { checkDistraction } from "./ai.js";
 import { createPlatformContextProvider } from "./platform/index.js";
 import { generateScoldingVoice } from "./tts.js";
 
-const DEFAULT_INTERVAL_SEC = 30;
+const DEFAULT_INTERVAL_SEC = 10;
+const SCOLDING_ART = "(｀・ω・´)";
+
+const execFileAsync = promisify(execFile);
 
 type CliConfig = {
   apiKey: string;
@@ -58,6 +63,21 @@ function appendHistory(entry: HistoryEntry): void {
   const historyPath = getHistoryPath();
   fs.mkdirSync(path.dirname(historyPath), { recursive: true });
   fs.appendFileSync(historyPath, `${JSON.stringify(entry)}\n`);
+}
+
+async function playAudio(filePath: string): Promise<void> {
+  if (process.platform === "darwin") {
+    await execFileAsync("afplay", [filePath]);
+    return;
+  }
+
+  if (process.platform === "win32") {
+    const command = `(New-Object Media.SoundPlayer '${filePath.replace(/'/g, "''")}').PlaySync()`;
+    await execFileAsync("powershell", ["-NoProfile", "-Command", command]);
+    return;
+  }
+
+  console.log("音声再生はこのOSでは未対応です。");
 }
 
 async function promptInput(label: string, mask = false): Promise<string> {
@@ -168,8 +188,10 @@ async function startMonitoring(objective: string): Promise<void> {
       });
       if (result.is_distracted) {
         console.log("\n🔥 サボり検知！音声を生成します...");
+        console.log(SCOLDING_ART);
         const audioPath = await generateScoldingVoice(result.scolding_message);
         console.log(`✨ 音声ファイル: ${audioPath}`);
+        await playAudio(audioPath);
       } else {
         console.log("\n✨ 集中しています。音声生成はスキップしました。");
       }

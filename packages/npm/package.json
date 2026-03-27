@@ -1,6 +1,6 @@
 {
   "name": "@kloud-taxi/cmc",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Context monitor CLI",
   "main": "dist/cli.js",
   "types": "dist/cli.d.ts",
