@@ -36,7 +36,7 @@ return ""
 `;
 
 function shouldFetchBrowserUrl(): boolean {
-  return process.env.CONTEXT_MONITOR_FETCH_BROWSER_URL === "1";
+  return process.env.CONTEXT_MONITOR_FETCH_BROWSER_URL !== "0";
 }
 
 export class MacOSContextProvider implements PlatformContextProvider {

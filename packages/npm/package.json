@@ -1,0 +1,57 @@
+{
+  "name": "@kloud-taxi/cmc",
+  "version": "0.1.2",
+  "description": "Context monitor CLI",
+  "main": "dist/cli.js",
+  "types": "dist/cli.d.ts",
+  "bin": {
+    "cmc": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "prepublishOnly": "npm run build",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kloud-taxi/context-monitor-cli.git"
+  },
+  "keywords": [
+    "cli",
+    "productivity",
+    "context-monitor"
+  ],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/kloud-taxi/context-monitor-cli/issues"
+  },
+  "homepage": "https://github.com/kloud-taxi/context-monitor-cli#readme",
+  "dependencies": {
+    "@aws-sdk/client-polly": "^3.1015.0",
+    "@kloud-taxi/api-client": "^2.0.0",
+    "axios": "^1.13.6",
+    "dotenv": "^17.3.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.6",
+    "tsx": "^4.21.0"
+  }
+}
