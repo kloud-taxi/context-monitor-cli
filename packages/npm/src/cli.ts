@@ -11,7 +11,7 @@ import { checkDistraction } from "./ai.js";
 import { createPlatformContextProvider } from "./platform/index.js";
 import { generateScoldingVoice } from "./tts.js";
 
-const DEFAULT_INTERVAL_SEC = 10;
+const DEFAULT_INTERVAL_SEC = 5;
 const SCOLDING_ART = "(｀・ω・´)";
 const DEFAULT_N = 41n;
 
