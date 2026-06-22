@@ -10,6 +10,7 @@
 - 利用可能な音声モデルは[voicevox-models.csv](voicevox-models.csv)にあります。
 - APIクライアントの使い方は[api-client.md](./api-client.md)にあります。
 - 実装予定/実装済みのCLIコマンド一覧は[command.md](./command.md)にあります。
+- ログ検証の仕様は[verify.md](./verify.md)にあります。
 
 ## 与えるコンテキスト
 
@@ -68,6 +69,12 @@ cmc "タスクの概要"
 ```bash
 cmc -v
 cmc -h
+```
+
+### ログ検証
+
+```bash
+cmc verify-log /path/to/history.log
 ```
 
 ## 開発とローカル実行

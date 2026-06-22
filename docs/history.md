@@ -26,6 +26,10 @@
 - `url`: ブラウザ URL（取得できない場合は空文字）
 - `isDistracted`: サボり判定（`true`/`false`）
 - `scoldingMessage`: 叱咤メッセージ（`isDistracted` が `true` の場合に入る）
+- `serverTimestamp`: サーバー時刻（ISO 8601）
+- `m`: サーバー計算で生成された数値（10進文字列）
+- `n`: 計算時に使った `n`（10進文字列）
+- `d8`: $d_8$ の値（10進文字列）
 - `error`: エラーが発生した場合の簡易メッセージ
 
 ## 例
